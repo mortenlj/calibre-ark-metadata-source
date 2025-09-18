@@ -1,0 +1,43 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IntelliJ files
+.idea
+.idea_modules
+*.iml
+*.iws
+out
+gen
+
+# OS crap
+*~
+._*
+.Apple*
+.DS_Store
+.fuse_hidden
+Network Trash Folder
+.nfs*
+.TemporaryItems
+Temporary Items
+.Trash-*
+.Trashes
+.VolumeIcon.icns
+
+# Tool outputs
+*.out
+*.test
+
+# Python
+.pytest_cache
+*.pyc
+build
+dist
+__pycache__
