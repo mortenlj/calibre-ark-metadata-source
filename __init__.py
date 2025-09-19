@@ -43,8 +43,8 @@ class ArkMetadata(Source):
         if isbn:
             if self.running_a_test:
                 log_print("Running a test, returning test URL")
-                return "file://" + os.path.abspath(f"test_data/{isbn}.html")
-            return BOOK_URL_TEMPLATE.format(id=isbn)
+                return "isbn", isbn, "file://" + os.path.abspath(f"test_data/{isbn}.html")
+            return "isbn", isbn, BOOK_URL_TEMPLATE.format(id=isbn)
         return None
 
     def id_from_url(self, url):
@@ -57,7 +57,7 @@ class ArkMetadata(Source):
 
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):
         log.info("Identifying book with title:", title, ", authors:", authors, ", identifiers:", identifiers)
-        book_url = self.get_book_url(identifiers)
+        _, _, book_url = self.get_book_url(identifiers)
         if book_url:
             book_urls = [book_url]
         else:
@@ -149,7 +149,7 @@ class ArkMetadata(Source):
         for item in items:
             product_id = item.get("id")
             if product_id:
-                book_url = self.get_book_url({"isbn": product_id})
+                _, _, book_url = self.get_book_url({"isbn": product_id})
                 if book_url:
                     log.info("Found book URL: %s" % book_url)
                     yield book_url
