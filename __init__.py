@@ -26,7 +26,16 @@ class ArkMetadata(Source):
     version = (1, 0, 0)
     minimum_calibre_version = (6, 0, 0)
     capabilities = frozenset(["identify", "cover"])
-    touched_fields = frozenset(["title", "authors", "identifier:isbn"])
+    touched_fields = frozenset([
+        "title",
+        "authors",
+        "identifier:isbn",
+        "pubdate",
+        "publisher",
+        "languages",
+        "series",
+        "series_index",
+    ])
 
     def get_book_url(self, identifiers):
         log_print("Getting book URL from identifiers:", identifiers)

@@ -1,9 +1,27 @@
 #!/usr/bin/env python
 import os
+import re
+from datetime import datetime, tzinfo
 from threading import Thread
+from zoneinfo import ZoneInfo
 
 from calibre.ebooks.metadata.book.base import Metadata
 from lxml.html import fromstring
+
+
+LANGUAGE_LOOKUP = {
+    "norsk": "no",
+    "nynorsk": "nn",
+    "bokmål": "nb",
+    "engelsk": "en",
+    "svensk": "sv",
+    "dansk": "da",
+    "finsk": "fi",
+    "tysk": "de",
+    "fransk": "fr",
+    "spansk": "es",
+    "italiensk": "it",
+}
 
 
 class Worker(Thread):  # Get  details
@@ -61,12 +79,48 @@ class Worker(Thread):  # Get  details
         mi.source_relevance = self._relevance
         if isbn:
             mi.set_identifier("isbn", isbn)
+
         mi.has_cover = bool(cover_url)
         if isbn and cover_url:
             if self._plugin.running_a_test:
                 cover_url = "file://" + os.path.abspath("test_data/example_cover.jpeg")
             self._plugin.cache_identifier_to_cover_url(isbn, cover_url)
 
+        # Find product details
+        product_details_dts = doc.xpath("//div[@id='acc-product-details']//dt")
+        for dt in product_details_dts:
+            key = dt.text_content().strip()
+            dd = dt.getnext()
+            if dd is None:
+                continue
+            value = dd.text_content().strip()
+            if key == "Forlag":
+                mi.publisher = value
+                self._log.debug(f"Found publisher: {value}")
+            elif key == "Første salgsdato":
+                pubdate = datetime.strptime(value, "%d.%m.%Y")
+                pubdate = pubdate.replace(tzinfo=ZoneInfo("Europe/Oslo"))
+                mi.pubdate = pubdate
+                self._log.debug(f"Found publication date: {pubdate.isoformat()}")
+            elif key == "Språk":
+                languages = [LANGUAGE_LOOKUP[v.strip()] for v in value.lower().split(",") if v.strip() in LANGUAGE_LOOKUP]
+                mi.languages = languages
+                self._log.debug("Set languages: %s" % ", ".join(languages))
+            elif key == "Serie":
+                mi.series = value
+                self._log.debug(f"Found series: {value}")
+
+        series_index_div = doc.xpath("//div[contains(text(), ' av serien')]")
+        if series_index_div:
+            series_text = series_index_div[0].text_content().strip()
+            if match := re.search(r'Del (\d*?) av serien', series_text):
+                series_index = match.group(1).strip()
+                if series_index:
+                    try:
+                        mi.series_index = float(series_index)
+                        self._log.debug(f"Found series index: {series_index}")
+                    except ValueError:
+                        pass
+
         self._plugin.clean_downloaded_metadata(mi)
-        self._log.info("Fetched metadata: %s" % mi)
         self._result_queue.put(mi)
