@@ -1,11 +1,13 @@
 import os
 import queue
 import re
+import time
 from datetime import datetime
 
 from calibre.ebooks.metadata import check_isbn
 from calibre.ebooks.metadata.book.base import Metadata
 from calibre.ebooks.metadata.sources.base import Source
+from calibre_plugins.ark_metadata.worker import Worker
 from lxml.html import fromstring
 
 BOOK_URL_TEMPLATE = "https://www.ark.no/produkt/{id}"
@@ -56,13 +58,27 @@ class ArkMetadata(Source):
                 log.info("No book URL found from search.")
                 return
         log.info("Found %d book URLs." % len(book_urls))
-        for url in book_urls:
-            if abort.is_set():
-                return
-            mi = self._fetch_metadata(url, timeout, log)
-            if not mi:
-                log.info("No metadata found at URL: %s" % book_url)
-            result_queue.put(mi)
+
+        workers = [
+            Worker(url, relevance, result_queue, self.browser, log, self, timeout) for relevance, url in
+            enumerate(book_urls)
+        ]
+
+        for w in workers:
+            w.start()
+            # Don't send all requests at the same time
+            time.sleep(0.1)
+
+        while not abort.is_set():
+            a_worker_is_alive = False
+            for w in workers:
+                w.join(0.2)
+                if abort.is_set():
+                    break
+                if w.is_alive():
+                    a_worker_is_alive = True
+            if not a_worker_is_alive:
+                break
 
     def get_cached_cover_url(self, identifiers):
         log_print("Getting cached cover URL with identifiers:", identifiers)
