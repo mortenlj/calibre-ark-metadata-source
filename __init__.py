@@ -11,7 +11,9 @@ from calibre_plugins.ark_metadata.worker import Worker
 from lxml.html import fromstring
 
 BOOK_URL_TEMPLATE = "https://www.ark.no/produkt/{id}"
-QUERY_URL_TEMPLATE = "https://www.ark.no/search?forfatter={author}&format=E-Bok%20%28EPUB%29%2C%20nedlastbar&text={title}"
+QUERY_URL_TEMPLATE = (
+    "https://www.ark.no/search?forfatter={author}&format=E-Bok%20%28EPUB%29%2C%20nedlastbar&text={title}"
+)
 ISBN_URL_PATTERN = r"https?://(www\.)?ark\.no/produkt/.*-(\d{10}|\d{13})"
 
 
@@ -26,20 +28,22 @@ class ArkMetadata(Source):
     version = (1, 0, 0)
     minimum_calibre_version = (6, 0, 0)
     capabilities = frozenset(["identify", "cover"])
-    touched_fields = frozenset([
-        "title",
-        "authors",
-        "identifier:isbn",
-        "pubdate",
-        "publisher",
-        "languages",
-        "series",
-        "series_index",
-    ])
+    touched_fields = frozenset(
+        [
+            "title",
+            "authors",
+            "identifier:isbn",
+            "pubdate",
+            "publisher",
+            "languages",
+            "series",
+            "series_index",
+        ]
+    )
 
     def get_book_url(self, identifiers):
         log_print("Getting book URL from identifiers:", identifiers)
-        isbn = check_isbn(identifiers.get('isbn', None))
+        isbn = check_isbn(identifiers.get("isbn", None))
         if isbn:
             if self.running_a_test:
                 log_print("Running a test, returning test URL")
@@ -69,8 +73,8 @@ class ArkMetadata(Source):
         log.info("Found %d book URLs." % len(book_urls))
 
         workers = [
-            Worker(url, relevance, result_queue, self.browser, log, self, timeout) for relevance, url in
-            enumerate(book_urls)
+            Worker(url, relevance, result_queue, self.browser, log, self, timeout)
+            for relevance, url in enumerate(book_urls)
         ]
 
         for w in workers:
@@ -92,7 +96,7 @@ class ArkMetadata(Source):
     def get_cached_cover_url(self, identifiers):
         log_print("Getting cached cover URL with identifiers:", identifiers)
         url = None
-        isbn = check_isbn(identifiers.get('isbn', None))
+        isbn = check_isbn(identifiers.get("isbn", None))
         if isbn is not None:
             url = self.cached_identifier_to_cover_url(isbn)
         return url
@@ -101,7 +105,7 @@ class ArkMetadata(Source):
         log_print("Downloading cover with title:", title, ", authors:", authors, ", identifiers:", identifiers)
         cached_url = self.get_cached_cover_url(identifiers)
         if cached_url is None:
-            log.info('No cached cover found, running identify')
+            log.info("No cached cover found, running identify")
             rq = queue.Queue()
             self.identify(log, rq, abort, title=title, authors=authors, identifiers=identifiers)
             if abort.is_set():
@@ -118,18 +122,18 @@ class ArkMetadata(Source):
                 if cached_url is not None:
                     break
         if cached_url is None:
-            log.info('No cover found')
+            log.info("No cover found")
             return
 
         if abort.is_set():
             return
 
-        log.info('Downloading cover from:', cached_url)
+        log.info("Downloading cover from:", cached_url)
         try:
             cdata = self.browser.open_novisit(cached_url, timeout=timeout).read()
             result_queue.put((self, cdata))
-        except:
-            log.exception('Failed to download cover from:', cached_url)
+        except Exception as e:
+            log.exception("Failed to download cover from %s: %s", cached_url, e)
 
     def _search(self, title, authors, timeout, log):
         # Implement search logic here if needed
@@ -163,7 +167,7 @@ class ArkMetadata(Source):
         raw = resp.read()
         doc = fromstring(raw)
         title = cover_url = isbn = None
-        for meta in doc.xpath('//meta'):
+        for meta in doc.xpath("//meta"):
             if meta.get("property") == "og:title":
                 title = meta.get("content")
                 log.debug("Found title: %s" % title)
@@ -190,33 +194,28 @@ class ArkMetadata(Source):
         return mi
 
 
-if __name__ == '__main__':  # tests
+if __name__ == "__main__":  # tests
     # To run these test use:
     # calibre-debug -e __init__.py
-    from calibre.ebooks.metadata.sources.test import (test_identify_plugin,
-                                                      title_test, authors_test, series_test)
+    from calibre.ebooks.metadata.sources.test import test_identify_plugin, title_test, authors_test
 
-    test_identify_plugin(ArkMetadata.name,
-                         [
-                             (  # A book with a ISBN
-                                 {
-                                     "title": "Diamanter og rust - en Hanne Wilhelmsen-roman",
-                                     "authors": ["Anne Holt"],
-                                     "identifiers": {"isbn": "9788205598980"},
-                                 },
-                                 [
-                                     title_test("Diamanter og rust - en Hanne Wilhelmsen-roman", exact=True),
-                                     authors_test(["Anne Holt"])
-                                 ]
-                             ),
-                             (  # A book with a title/author search
-                                 {
-                                     "title": "Personlig",
-                                     "authors": ["Lee Child"],
-                                 },
-                                 [
-                                     title_test("Personlig", exact=True),
-                                     authors_test(["Lee Child"])
-                                 ]
-                             ),
-                         ])
+    test_identify_plugin(
+        ArkMetadata.name,
+        [
+            (  # A book with a ISBN
+                {
+                    "title": "Diamanter og rust - en Hanne Wilhelmsen-roman",
+                    "authors": ["Anne Holt"],
+                    "identifiers": {"isbn": "9788205598980"},
+                },
+                [title_test("Diamanter og rust - en Hanne Wilhelmsen-roman", exact=True), authors_test(["Anne Holt"])],
+            ),
+            (  # A book with a title/author search
+                {
+                    "title": "Personlig",
+                    "authors": ["Lee Child"],
+                },
+                [title_test("Personlig", exact=True), authors_test(["Lee Child"])],
+            ),
+        ],
+    )

@@ -8,3 +8,6 @@ dependencies = []
 
 [dependency-groups]
 dev = []
+
+[tool.ruff]
+line-length = 120

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import re
-from datetime import datetime, tzinfo
+from datetime import datetime
 from threading import Thread
 from zoneinfo import ZoneInfo
 
@@ -45,8 +45,8 @@ class Worker(Thread):  # Get  details
     def run(self):
         try:
             self.get_details()
-        except:
-            self._log.exception("Get details failed for url: %s" % self._url)
+        except Exception as e:
+            self._log.exception("Get details failed for url %s: %s", self._url, e)
 
     def get_details(self):
         # Implement metadata fetching logic here
@@ -58,7 +58,7 @@ class Worker(Thread):  # Get  details
         doc = fromstring(raw)
 
         title = cover_url = isbn = None
-        for meta in doc.xpath('//meta'):
+        for meta in doc.xpath("//meta"):
             if meta.get("property") == "og:title":
                 title = meta.get("content")
                 self._log.debug("Found title: %s" % title)
@@ -103,7 +103,9 @@ class Worker(Thread):  # Get  details
                 mi.pubdate = pubdate
                 self._log.debug(f"Found publication date: {pubdate.isoformat()}")
             elif key == "Språk":
-                languages = [LANGUAGE_LOOKUP[v.strip()] for v in value.lower().split(",") if v.strip() in LANGUAGE_LOOKUP]
+                languages = [
+                    LANGUAGE_LOOKUP[v.strip()] for v in value.lower().split(",") if v.strip() in LANGUAGE_LOOKUP
+                ]
                 mi.languages = languages
                 self._log.debug("Set languages: %s" % ", ".join(languages))
             elif key == "Serie":
@@ -113,7 +115,7 @@ class Worker(Thread):  # Get  details
         series_index_div = doc.xpath("//div[contains(text(), ' av serien')]")
         if series_index_div:
             series_text = series_index_div[0].text_content().strip()
-            if match := re.search(r'Del (\d*?) av serien', series_text):
+            if match := re.search(r"Del (\d*?) av serien", series_text):
                 series_index = match.group(1).strip()
                 if series_index:
                     try:
