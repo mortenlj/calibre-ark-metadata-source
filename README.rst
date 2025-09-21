@@ -1,5 +1,5 @@
-===============================
-ARK metadata plugin for Calibre
-===============================
+======================================
+ARK metadata source plugin for Calibre
+======================================
 
-This plugin primarily aims to provide covers for books from the ark.no website.
+Provides metadata for books found on the ark.no website.
