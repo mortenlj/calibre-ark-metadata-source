@@ -67,8 +67,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
         with:
-          tag_name: ${{ steps.get_data.outputs.version }}
-          name: Release ${{ steps.get_data.outputs.version }}
+          tag_name: ${{ needs.set-version.outputs.version }}
+          name: Release ${{ needs.set-version.outputs.version }}
           draft: false
           prerelease: false
-          files: ark-metadata-${{ steps.get_data.outputs.version }}.zip
+          files: ark-metadata-${{ needs.set-version.outputs.version }}.zip
