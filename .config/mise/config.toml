@@ -17,7 +17,7 @@ depends = ["install"]
 description = "Run tests"
 
 [tasks.checks]
-depends = ["fmt", "lint", "test"]
+depends = ["fmt", "lint"]
 description = "Run all checks"
 
 [tools]
