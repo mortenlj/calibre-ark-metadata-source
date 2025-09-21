@@ -16,6 +16,10 @@ run = "calibre-debug -e __init__.py"
 depends = ["install"]
 description = "Run tests"
 
+[tasks.checks]
+depends = ["fmt", "lint", "test"]
+description = "Run all checks"
+
 [tools]
 python = "3.13"
 ruff = "latest"
