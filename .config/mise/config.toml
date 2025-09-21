@@ -1,0 +1,22 @@
+
+[tasks.fmt]
+run = "ruff format ."
+description = "Format the project using black"
+
+[tasks.lint]
+run = "ruff check ."
+description = "Lint the project using ruff"
+
+[tasks.install]
+run = "calibre-customize -b ."
+description = "Install the plugin into calibre"
+
+[tasks.test]
+run = "calibre-debug -e __init__.py"
+depends = ["install"]
+description = "Run tests"
+
+[tools]
+python = "3.13"
+ruff = "latest"
+uv = "latest"
