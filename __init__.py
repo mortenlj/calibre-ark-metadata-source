@@ -29,7 +29,7 @@ class ArkMetadata(Source):
     name = "Ark"
     description = "Fetch metadata from ark.no"
     author = "Morten Lied Johansen"
-    version = (1, 0, 0)
+    version = (0, 1, 0)
     minimum_calibre_version = (6, 0, 0)
     capabilities = frozenset(["identify", "cover"])
     touched_fields = frozenset(
