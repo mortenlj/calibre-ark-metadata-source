@@ -2,6 +2,7 @@ import os
 import queue
 import re
 import time
+from collections import namedtuple
 from datetime import datetime
 
 from calibre.ebooks.metadata import check_isbn
@@ -15,6 +16,9 @@ QUERY_URL_TEMPLATE = (
     "https://www.ark.no/search?forfatter={author}&format=E-Bok%20%28EPUB%29%2C%20nedlastbar&text={title}"
 )
 ISBN_URL_PATTERN = r"https?://(www\.)?ark\.no/produkt/.*-(\d{10}|\d{13})"
+
+
+BookUrlResult = namedtuple("BookUrlResult", ["type", "id", "url"])
 
 
 def log_print(*args, **kwargs):
@@ -41,14 +45,14 @@ class ArkMetadata(Source):
         ]
     )
 
-    def get_book_url(self, identifiers):
+    def get_book_url(self, identifiers) -> BookUrlResult | None:
         log_print("Getting book URL from identifiers:", identifiers)
         isbn = check_isbn(identifiers.get("isbn", None))
         if isbn:
             if self.running_a_test:
                 log_print("Running a test, returning test URL")
-                return "isbn", isbn, "file://" + os.path.abspath(f"test_data/{isbn}.html")
-            return "isbn", isbn, BOOK_URL_TEMPLATE.format(id=isbn)
+                return BookUrlResult("isbn", isbn, "file://" + os.path.abspath(f"test_data/{isbn}.html"))
+            return BookUrlResult("isbn", isbn, BOOK_URL_TEMPLATE.format(id=isbn))
         return None
 
     def id_from_url(self, url):
@@ -61,9 +65,9 @@ class ArkMetadata(Source):
 
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):
         log.info("Identifying book with title:", title, ", authors:", authors, ", identifiers:", identifiers)
-        _, _, book_url = self.get_book_url(identifiers)
-        if book_url:
-            book_urls = [book_url]
+        result = self.get_book_url(identifiers)
+        if result:
+            book_urls = [result.url]
         else:
             log.info("No book URL found using identifiers, searching by title and authors.")
             book_urls = list(self._search(title, authors, timeout, log))
@@ -153,10 +157,10 @@ class ArkMetadata(Source):
         for item in items:
             product_id = item.get("id")
             if product_id:
-                _, _, book_url = self.get_book_url({"isbn": product_id})
-                if book_url:
-                    log.info("Found book URL: %s" % book_url)
-                    yield book_url
+                result = self.get_book_url({"isbn": product_id})
+                if result:
+                    log.info("Found book URL: %s" % result.url)
+                    yield result.url
 
     def _fetch_metadata(self, book_url, timeout, log):
         # Implement metadata fetching logic here
@@ -197,7 +201,7 @@ class ArkMetadata(Source):
 if __name__ == "__main__":  # tests
     # To run these test use:
     # calibre-debug -e __init__.py
-    from calibre.ebooks.metadata.sources.test import test_identify_plugin, title_test, authors_test
+    from calibre.ebooks.metadata.sources.test import test_identify_plugin, title_test, authors_test, series_test
 
     test_identify_plugin(
         ArkMetadata.name,
@@ -208,14 +212,18 @@ if __name__ == "__main__":  # tests
                     "authors": ["Anne Holt"],
                     "identifiers": {"isbn": "9788205598980"},
                 },
-                [title_test("Diamanter og rust - en Hanne Wilhelmsen-roman", exact=True), authors_test(["Anne Holt"])],
+                [
+                    title_test("Diamanter og rust - en Hanne Wilhelmsen-roman", exact=True),
+                    authors_test(["Anne Holt"]),
+                    series_test("Hanne Wilhelmsen", 13),
+                ],
             ),
             (  # A book with a title/author search
                 {
                     "title": "Personlig",
                     "authors": ["Lee Child"],
                 },
-                [title_test("Personlig", exact=True), authors_test(["Lee Child"])],
+                [title_test("Personlig", exact=True), authors_test(["Lee Child"]), series_test("Jack Reacher", 19)],
             ),
         ],
     )
