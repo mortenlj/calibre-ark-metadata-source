@@ -1,0 +1,75 @@
+name: Build
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  - push
+  - workflow_dispatch
+
+jobs:
+  set-version:
+    name: Set variables
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: "Set version"
+        id: constants
+        run: |
+          export version="1.$(date +%Y%m%d%H%M%S).0+$(git describe --always --dirty --exclude '*')"
+          echo "version=${version}"
+          echo "version=${version}" >> ${GITHUB_OUTPUT}
+    outputs:
+      version: "${{ steps.constants.outputs.version }}"
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs:
+      - set-version
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: jdx/mise-action@v2
+      - name: Run checks
+        run: mise run checks
+      - name: Inject version into files
+        run: mise run inject-version "${{ needs.set-version.outputs.version }}"
+      - name: Build zipfile
+        run: mise run build-zip
+      - name: Save zipfile for release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: zipfile
+          path: build/ark-metadata-${{ needs.set-version.outputs.version }}.zip
+          if-no-files-found: error
+  release:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    needs:
+      - set-version
+      - build
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          name: zipfile
+          path: ./build/
+      - name: create release
+        id: create_release
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+        with:
+          tag_name: ${{ steps.get_data.outputs.version }}
+          name: Release ${{ steps.get_data.outputs.version }}
+          draft: false
+          prerelease: false
+          files: ./build/ark-metadata-${{ steps.get_data.outputs.version }}.zip
