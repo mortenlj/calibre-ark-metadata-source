@@ -40,7 +40,7 @@ jobs:
       - name: Inject version into files
         run: mise run inject-version "${{ needs.set-version.outputs.version }}"
       - name: Build zipfile
-        run: mise run build-zip
+        run: mise run build-zip "${{ needs.set-version.outputs.version }}"
       - name: Save zipfile for release
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
