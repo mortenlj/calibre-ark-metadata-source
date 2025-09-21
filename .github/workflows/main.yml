@@ -45,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: zipfile
-          path: build/ark-metadata-${{ needs.set-version.outputs.version }}.zip
+          path: ark-metadata-${{ needs.set-version.outputs.version }}.zip
           if-no-files-found: error
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
@@ -63,7 +63,6 @@ jobs:
         uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
           name: zipfile
-          path: ./build/
       - name: create release
         id: create_release
         uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
@@ -72,4 +71,4 @@ jobs:
           name: Release ${{ steps.get_data.outputs.version }}
           draft: false
           prerelease: false
-          files: ./build/ark-metadata-${{ steps.get_data.outputs.version }}.zip
+          files: ark-metadata-${{ steps.get_data.outputs.version }}.zip
