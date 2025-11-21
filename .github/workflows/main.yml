@@ -34,7 +34,7 @@ jobs:
       - set-version
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
-      - uses: jdx/mise-action@9dc7d5dd454262207dea3ab5a06a3df6afc8ff26 # v3
+      - uses: jdx/mise-action@d16887ba50704baed7de72bd1e82e04391e4457a # v3
       - name: Run checks
         run: mise run checks
       - name: Inject version into files
