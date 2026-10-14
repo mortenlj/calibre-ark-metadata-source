@@ -21,6 +21,6 @@ depends = ["fmt", "lint"]
 description = "Run all checks"
 
 [tools]
-python = "3.14.6"
+python = "3.14.8"
 ruff = "latest"
 uv = "latest"
